@@ -1,3 +1,6 @@
+// From: https://github.com/antlr/grammars-v4/blob/master/turtle/TURTLE.g4
+// Modify it according to W3C specification
+
 /*
  [The "BSD licence"]
  Copyright (c) 2014, Alejandro Medrano (@ Universidad Politecnica de Madrid, http://www.upm.es/)
