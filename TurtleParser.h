@@ -70,22 +70,57 @@ class TurtleParser : public TURTLEBaseVisitor
     /// The next blank node id
     unsigned nextBlank;
 
+    
     /// Is Parse Tree ready?
     bool hasParseTree();
     /// Construct a parse tree based on antlr4
     void constructParseTree();
 
     // Convert a relative IRI into an absolute one
-    void constructAbsoluteURI(std::string& iri);
+    std::string constructAbsoluteIRI(const std::string &iri);
     /// Construct a new blank node
-    void newBlankNode(std::string& node);
-
+    std::string newBlankNode();
+    std::string bNodeID2Label(unsigned id);
     /// TODO: other helper funcs
+    std::string unescapeString(const std::string &str);
+
 
     /// TODO: The antlr visit functions
     antlrcpp::Any visitStatement(TURTLEParser::StatementContext *ctx);
+
     antlrcpp::Any visitDirective(TURTLEParser::DirectiveContext *ctx);
 
+    antlrcpp::Any visitPrefixID(TURTLEParser::PrefixIDContext *ctx);
+
+    antlrcpp::Any visitBase(TURTLEParser::BaseContext *ctx);
+
+    antlrcpp::Any visitSparqlBase(TURTLEParser::SparqlBaseContext *ctx);
+
+    antlrcpp::Any visitSparqlPrefix(TURTLEParser::SparqlPrefixContext *ctx);
+
+    antlrcpp::Any visitTriples(TURTLEParser::TriplesContext *ctx);
+
+    antlrcpp::Any visitPredicateObjectList(TURTLEParser::PredicateObjectListContext *ctx);
+
+    antlrcpp::Any visitObjectList(TURTLEParser::ObjectListContext *ctx);
+
+    antlrcpp::Any visitVerb(TURTLEParser::VerbContext *ctx);
+
+    antlrcpp::Any visitSubject(TURTLEParser::SubjectContext *ctx);
+
+    antlrcpp::Any visitPredicate(TURTLEParser::PredicateContext *ctx);
+
+    antlrcpp::Any visitObject_(TURTLEParser::Object_Context *ctx) ;
+
+    antlrcpp::Any visitLiteral(TURTLEParser::LiteralContext *ctx);
+
+    antlrcpp::Any visitBlankNodePropertyList(TURTLEParser::BlankNodePropertyListContext *ctx) ;
+
+    antlrcpp::Any visitCollection(TURTLEParser::CollectionContext *ctx);
+
+    antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx) ;
+
+    antlrcpp::Any visitIri(TURTLEParser::IriContext *ctx) ;
 };
 
 /**
