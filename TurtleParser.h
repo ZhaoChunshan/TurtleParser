@@ -4,7 +4,10 @@
 //
 //---------------------------------------------------------------------------
 #include "Type.h"
+#include "Turtle/TURTLELexer.h"
+#include "Turtle/TURTLEParser.h"
 #include "Turtle/TURTLEBaseVisitor.h"
+#include "antlr4-runtime.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -17,6 +20,15 @@
 */
 class TurtleParser : public TURTLEBaseVisitor
 {
+    public:
+    /// Constructor
+    TurtleParser(std::istream& in);
+    /// Destructor
+    ~TurtleParser();
+
+    /// Read the next triple
+    bool parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType);
+
     private:
     /// A triple
     struct Triple {
@@ -29,14 +41,28 @@ class TurtleParser : public TURTLEBaseVisitor
         Triple(const std::string& subject,const std::string& predicate,const std::string& object,Type::Type_ID objectType,const std::string& objectSubType) : subject(subject),predicate(predicate),object(object),objectSubType(objectSubType),objectType(objectType) {}
     };
 
+    /// Five items to represent the parser state. (W3C recommendation)
+
     /// The uri base
     std::string base;
-    /// All known prefixes
-    std::map<std::string,std::string> prefixes;
+    /// All known prefixes -> iri
+    std::map<std::string,std::string> namespaces;
     /// All blank node labels -> id
     std::map<std::string, unsigned> bnodeLabels;
+    /// Current subject
+    std::string curSubject;
+    /// Current predicate
+    std::string curPredicate;
 
+    /// parser
+    TURTLEParser *parser;
 
+    /// input stream
+    std::istream &in;
+    /// Parse tree
+    TURTLEParser::TurtleDocContext *tree;
+    // Reader in statement vector
+    unsigned statementReader;
     /// The currently available triples
     std::vector<Triple> triples;
     /// Reader in the triples
@@ -44,32 +70,29 @@ class TurtleParser : public TURTLEBaseVisitor
     /// The next blank node id
     unsigned nextBlank;
 
-    // Convert a relative URI into an absolute one
-    void constructAbsoluteURI(std::string& uri);
+    /// Is Parse Tree ready?
+    bool hasParseTree();
+    /// Construct a parse tree based on antlr4
+    void constructParseTree();
+
+    // Convert a relative IRI into an absolute one
+    void constructAbsoluteURI(std::string& iri);
     /// Construct a new blank node
     void newBlankNode(std::string& node);
-    /// Report an error
-    void parseError(const std::string& message);
 
-    /// The antlr visit functions
+    /// TODO: other helper funcs
 
+    /// TODO: The antlr visit functions
+    antlrcpp::Any visitStatement(TURTLEParser::StatementContext *ctx);
+    antlrcpp::Any visitDirective(TURTLEParser::DirectiveContext *ctx);
 
-
-    public:
-    /// Constructor
-    TurtleParser(std::istream& in);
-    /// Destructor
-    ~TurtleParser();
-
-    /// Read the next triple
-    bool parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType);
 };
 
 /**
 	Listener for errors during Turtle file parsing, which throws a 
 	corresponding exception when an error arises.
 */
-class TurtleErrorListener: public antlr4::BaseErrorListener
+class TURTLEErrorListener: public antlr4::BaseErrorListener
 {
 public:
 	void syntaxError(antlr4::Recognizer *recognizer, antlr4::Token * offendingSymbol, \
