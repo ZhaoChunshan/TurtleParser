@@ -49,11 +49,19 @@ base
    ;
 
 sparqlBase
-   : 'BASE' IRIREF
+   : BASE IRIREF
    ;
 
 sparqlPrefix
-   : 'PREFIX' PNAME_NS IRIREF
+   : PREFIX PNAME_NS IRIREF
+   ;
+
+BASE
+   : ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )
+   ;
+
+PREFIX
+   : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'X' | 'x' )
    ;
 
 triples
@@ -137,7 +145,7 @@ BlankNode
 
 
 WS
-   : ([\t\r\n\u000C] | ' ') + -> skip
+   : ( ' ' | '\t' | '\r' | '\n' ) + -> skip
    ;
 
 // LEXER
@@ -146,11 +154,9 @@ PN_PREFIX
    : PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?
    ;
 
-//IRIREF	        :	'<' (~(['\u0000'..'\u0020']|'<'|'>'|'"'|'{'|'}'|'|'|'^'|'`'|'\\') | UCHAR)* '>'; /* \u00=NULL #01-\u1F=control codes \u20=space */
 
 IRIREF
-   : '<' (PN_CHARS | '.' | ':' | '/' | '\\' | '#' | '@' | '%' | '&' | UCHAR)* '>'
-   ;
+   : '<' ( ~ ( [\u0000-\u0020] | '<' | '>' | '"' | '{' | '}' | '|' | '^' | '`' | '\\')  | UCHAR )* '>' ; 
 
 
 PNAME_NS
@@ -199,22 +205,22 @@ EXPONENT
 
 
 STRING_LITERAL_LONG_SINGLE_QUOTE
-   : '\'\'\'' (('\'' | '\'\'')? ([^'\\] | ECHAR | UCHAR | '"'))* '\'\'\''
+   : '\'\'\'' (('\'' | '\'\'')? ( ~ ['\\] | ECHAR | UCHAR ))* '\'\'\''
    ;
 
 
 STRING_LITERAL_LONG_QUOTE
-   : '"""' (('"' | '""')? (~ ["\\] | ECHAR | UCHAR | '\''))* '"""'
+   : '"""' (('"' | '""')? (~ ["\\] | ECHAR | UCHAR ))* '"""'
    ;
 
 
 STRING_LITERAL_QUOTE
-   : '"' (~ ["\\\r\n] | '\'' | '\\"')* '"'
+   : '"' (~ ["\\\r\n] | ECHAR | UCHAR )* '"'
    ;
 
 
 STRING_LITERAL_SINGLE_QUOTE
-   : '\'' (~ [\u0027\u005C\u000A\u000D] | ECHAR | UCHAR | '"')* '\''
+   : '\'' (~ [\u0027\u005C\u000A\u000D] | ECHAR | UCHAR )* '\''
    ;
 
 
@@ -239,7 +245,7 @@ ANON
 
 
 PN_CHARS_BASE
-   : 'A' .. 'Z' | 'a' .. 'z' | '\u00C0' .. '\u00D6' | '\u00D8' .. '\u00F6' | '\u00F8' .. '\u02FF' | '\u0370' .. '\u037D' | '\u037F' .. '\u1FFF' | '\u200C' .. '\u200D' | '\u2070' .. '\u218F' | '\u2C00' .. '\u2FEF' | '\u3001' .. '\uD7FF' | '\uF900' .. '\uFDCF' | '\uFDF0' .. '\uFFFD'
+   : 'A' .. 'Z' | 'a' .. 'z' | '\u00C0' .. '\u00D6' | '\u00D8' .. '\u00F6' | '\u00F8' .. '\u02FF' | '\u0370' .. '\u037D' | '\u037F' .. '\u1FFF' | '\u200C' .. '\u200D' | '\u2070' .. '\u218F' | '\u2C00' .. '\u2FEF' | '\u3001' .. '\uD7FF' | '\uF900' .. '\uFDCF' | '\uFDF0' .. '\uFFFD' | '\u{10000}' .. '\u{EFFFF}' 
    ;
 
 
