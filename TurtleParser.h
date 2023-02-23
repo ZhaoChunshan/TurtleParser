@@ -61,7 +61,7 @@ class TurtleParser : public TURTLEBaseVisitor
     std::istream &in;
     /// Parse tree
     TURTLEParser::TurtleDocContext *tree;
-    // Reader in statement vector
+    // Reader in statement vector (i.e. tree->statement() )
     unsigned statementReader;
     /// The currently available triples
     std::vector<Triple> triples;
@@ -80,8 +80,15 @@ class TurtleParser : public TURTLEBaseVisitor
     std::string constructAbsoluteIRI(const std::string &iri);
     /// Construct a new blank node
     std::string newBlankNode();
-    std::string bNodeID2Label(unsigned id);
-    /// TODO: other helper funcs
+    /// Convert a blank node id to its name in triple.
+    std::string bNodeID2Name(unsigned id);
+
+    // Convert two hex char to a unsigned char
+    // For example : 'A' '0' => 160, '2' 'b' => 43
+    unsigned char twoHexCharToByte(char high, char low);
+    /// Get str unescaped, process numeric escapes, string escapes, reserved character escapes at the same 
+    /// time. Make sure that every '\\' is used for escape, never just as a char.
+    /// The grammar and the check of lexer && parser guarantee this property.
     std::string unescapeString(const std::string &str);
 
 
@@ -112,15 +119,31 @@ class TurtleParser : public TURTLEBaseVisitor
 
     antlrcpp::Any visitObject_(TURTLEParser::Object_Context *ctx) ;
 
-    antlrcpp::Any visitLiteral(TURTLEParser::LiteralContext *ctx);
+    antlrcpp::Any visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType);
 
     antlrcpp::Any visitBlankNodePropertyList(TURTLEParser::BlankNodePropertyListContext *ctx) ;
 
     antlrcpp::Any visitCollection(TURTLEParser::CollectionContext *ctx);
 
-    antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx) ;
+    antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType) ;
 
     antlrcpp::Any visitIri(TURTLEParser::IriContext *ctx) ;
+
+    // addtional new function
+
+    antlrcpp::Any visitBlankNode(const std::string &text);
+
+    antlrcpp::Any visitString(const std::string &text);
+
+    antlrcpp::Any visitStringQuote(const std::string &str);
+
+    antlrcpp::Any visitStringSingleQuote(const std::string &str);
+
+    antlrcpp::Any visitStringLongQuote(const std::string &str);
+
+    antlrcpp::Any visitStringLongSingleQuote(const std::string &str);
+
+    antlrcpp::Any visitPrefixedName(const std::string &text);
 };
 
 /**
