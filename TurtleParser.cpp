@@ -75,7 +75,7 @@ std::string TurtleParser::bNodeID2Name(unsigned id){
 
 // Convert two hex char to a unsigned char
 // For example : 'A' '0' => 160, '2' 'b' => 43
-unsigned char twoHexCharToByte(char high, char low){
+unsigned char TurtleParser::twoHexCharToByte(char high, char low){
     unsigned char uc;
     if(high >= '0' && high <= '9'){
         uc = high - '0';
