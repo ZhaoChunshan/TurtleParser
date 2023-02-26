@@ -408,7 +408,7 @@ antlrcpp::Any TurtleParser::visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx
             }
         } else {
             objectType = Type::Type_CustomLanguage;
-            objectSubType = ctx->children[1]->getText();
+            objectSubType = ctx->children[1]->getText().substr(1);
         }
     }
     return antlrcpp::Any();
