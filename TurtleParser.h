@@ -8,7 +8,6 @@
 #include "Turtle/TURTLEParser.h"
 #include "Turtle/TURTLEBaseVisitor.h"
 #include "antlr4-runtime.h"
-#include <boost/url/src.hpp>
 #include <string>
 #include <map>
 #include <vector>
@@ -45,7 +44,7 @@ class TurtleParser : public TURTLEBaseVisitor
     /// Five items to represent the parser state. (W3C recommendation)
 
     /// The uri base
-    boost::urls::url base;
+    std::string base;
     /// All known prefixes -> iri
     std::map<std::string,std::string> namespaces;
     /// All blank node labels -> id
@@ -55,15 +54,9 @@ class TurtleParser : public TURTLEBaseVisitor
     /// Current predicate
     std::string curPredicate;
 
-    /// parser
-    TURTLEParser *parser;
 
     /// input stream
     std::istream &in;
-    /// Parse tree
-    TURTLEParser::TurtleDocContext *tree;
-    // Reader in statement vector (i.e. tree->statement() )
-    unsigned statementReader;
     /// The currently available triples
     std::vector<Triple> triples;
     /// Reader in the triples
@@ -71,11 +64,8 @@ class TurtleParser : public TURTLEBaseVisitor
     /// The next blank node id
     unsigned nextBlank;
 
-    
-    /// Is Parse Tree ready?
-    bool hasParseTree();
-    /// Construct a parse tree based on antlr4
-    void constructParseTree();
+    /// Construct a parse tree based on antlr4, and get all the tripes
+    void prepareTripes();
 
     // Convert a relative IRI into an absolute one
     std::string constructAbsoluteIRI(const std::string &iri);
@@ -120,13 +110,13 @@ class TurtleParser : public TURTLEBaseVisitor
 
     antlrcpp::Any visitObject_(TURTLEParser::Object_Context *ctx) ;
 
-    antlrcpp::Any visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType);
+    antlrcpp::Any visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType);
 
     antlrcpp::Any visitBlankNodePropertyList(TURTLEParser::BlankNodePropertyListContext *ctx) ;
 
     antlrcpp::Any visitCollection(TURTLEParser::CollectionContext *ctx);
 
-    antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType) ;
+    antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) ;
 
     antlrcpp::Any visitIri(TURTLEParser::IriContext *ctx) ;
 

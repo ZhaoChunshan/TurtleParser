@@ -28,10 +28,10 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 # when running g++ these will be included as -I/directory/path/
 target_include_directories(${PROJECT_NAME}
     PUBLIC
+        "${PROJECT_SOURCE_DIR}/tools/boost_1_81_0/include"
         "${PROJECT_SOURCE_DIR}/Turtle"
 		"${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/tools/antlr4-cpp-runtime-4/runtime/src"
-        "${PROJECT_SOURCE_DIR}/tools/boost_1_81_0/include"
 )
 target_link_libraries( ${PROJECT_NAME}
     PRIVATE 

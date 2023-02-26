@@ -1,4 +1,5 @@
 #include "TurtleParser.h"
+#include <boost/url/src.hpp>
 
 using namespace std;
 
@@ -16,18 +17,16 @@ const string type_boolean = "<http://www.w3.org/2001/XMLSchema#boolean>";
 
 	@param istream the Turtle file/string.
 */
-TurtleParser::TurtleParser(std::istream& in): in(in), tree(nullptr), triplesReader(0), \
-    nextBlank(0), parser(nullptr), statementReader(0) { }
+TurtleParser::TurtleParser(std::istream& in): in(in), triplesReader(0), nextBlank(0) { }
 
 TurtleParser::~TurtleParser(){ 
-    delete parser;
+
 }
 
 bool TurtleParser::parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType) {
-    if(tree == nullptr){
-        constructParseTree();
+    if(!triples.size()){
+        prepareTripes();
     }
-
     if(triplesReader < triples.size()){
         subject = triples[triplesReader].subject;
         predicate = triples[triplesReader].predicate;
@@ -38,35 +37,14 @@ bool TurtleParser::parse(std::string& subject,std::string& predicate,std::string
         return true;
     }
 
-    triples.clear();
-    triplesReader = 0;
-
-    while(triples.size() == 0){
-        if(statementReader < tree->statement().size()){
-            visitStatement(tree->statement(statementReader++));
-        } else {
-            return false;
-        }
-    }
-
-    subject = triples[triplesReader].subject;
-    predicate = triples[triplesReader].predicate;
-    object = triples[triplesReader].object;
-    objectType = triples[triplesReader].objectType;
-    objectSubType = triples[triplesReader].objectSubType;
-    ++triplesReader;
-    
-    return true;
+    return false;
 }
 
-bool TurtleParser::hasParseTree() {
-    return tree != nullptr;
-}
 
 /**
 	Overall driver function for Turtle parsing.
 */
-void TurtleParser::constructParseTree() {
+void TurtleParser::prepareTripes() {
     try{
         TURTLEErrorListener lstnr;
         antlr4::ANTLRInputStream input(in);
@@ -75,11 +53,12 @@ void TurtleParser::constructParseTree() {
 	    lexer.addErrorListener(&lstnr);
 
         antlr4::CommonTokenStream tokens(&lexer);
-        parser = new TURTLEParser (&tokens);
-        parser->removeErrorListeners(); 
-        parser->addErrorListener(&lstnr);
+        TURTLEParser parser(&tokens);
+        parser.removeErrorListeners(); 
+        parser.addErrorListener(&lstnr);
 
-        tree = parser->turtleDoc();
+        TURTLEParser::TurtleDocContext *ctx = parser.turtleDoc();
+        visitTurtleDoc(ctx);
 
     } catch (const runtime_error& e1) {
         throw runtime_error(e1.what());
@@ -94,18 +73,33 @@ std::string TurtleParser::constructAbsoluteIRI(const std::string &iri){
     // if it is identical to the base URI's scheme.
     const bool STRICT = false;  
 
-    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri_reference(
+    if(base.size() == 0) return iri;
+
+    boost::urls::result<boost::urls::url> resBase = boost::urls::parse_uri(
+            base.substr(1, base.size() - 2)
+        );
+    if(resBase.has_error()) {
+        throw runtime_error("[ERROR]  Fail to parse base URL: " + base + " .");
+    }
+    
+    boost::urls::url b = resBase.value();
+
+    if(!b.has_scheme()) {
+        throw runtime_error("[ERROR]  Base IRI has no scheme.");
+    }
+
+    boost::urls::result<boost::urls::url> resRef = boost::urls::parse_uri_reference(
             iri.substr(1, iri.length() - 2) 
         );
 
-    if(res.has_error()){
+    if(resRef.has_error()){
         throw runtime_error("[ERROR]  Fail to parse relative IRI " + iri + " .");
     }
     
-    boost::urls::url r = res.value();
+    boost::urls::url r = resRef.value();
     boost::urls::url t; // target url
 
-    if(!STRICT && r.has_scheme() && base.scheme() == r.scheme()){
+    if(!STRICT && r.has_scheme() && b.scheme() == r.scheme()){
         r.remove_scheme();
     }
     if(r.has_scheme()){
@@ -127,18 +121,18 @@ std::string TurtleParser::constructAbsoluteIRI(const std::string &iri){
         }else{
 
             if(r.path().size() == 0){
-                t.set_path(base.path());
+                t.set_path(b.path());
                 if(r.has_query()){
                     t.set_query(r.query());
-                }else if(base.has_query()){
-                    t.set_query(base.query());
+                }else if(b.has_query()){
+                    t.set_query(b.query());
                 }
             }else{;
                 if(r.path().at(0) == '/'){
                     t.set_path(r.path());
                 }else{
                     /* merge paths*/
-                    t.set_path(base.path());
+                    t.set_path(b.path());
                     if(t.segments( ).empty()){
                         t.set_path(r.path());
                     }else{
@@ -155,18 +149,20 @@ std::string TurtleParser::constructAbsoluteIRI(const std::string &iri){
                     t.set_query(r.query());
                 }
             }
-            if(base.has_authority()) {
-                t.set_encoded_authority(u.encoded_authority());
+            if(b.has_authority()) {
+                t.set_encoded_authority(b.encoded_authority());
             }
         }
-        t.set_scheme(base.scheme());
+        t.set_scheme(b.scheme());
     }
     if(r.has_fragment()){
         t.set_fragment(r.fragment());
     }
     t.normalize_path();
     
-    return t.buffer();
+    stringstream buffer;
+    buffer << '<' << t.buffer() << '>';
+    return buffer.str();
 }
 
 /// Construct a new blank node
@@ -267,7 +263,7 @@ std::string TurtleParser::unescapeString(const std::string &str){
                 case '\'':
                     buffer.put('\''); break;
                 case '\\':
-                    buffer.put('\\'); reak;
+                    buffer.put('\\'); break;
                 default:
                     buffer.put(str[i + 1]);
             }
@@ -312,44 +308,21 @@ antlrcpp::Any TurtleParser::visitPrefixID(TURTLEParser::PrefixIDContext *ctx){
 }
 
 antlrcpp::Any TurtleParser::visitBase(TURTLEParser::BaseContext *ctx){
-    string baseString = constructAbsoluteIRI(
+    base = constructAbsoluteIRI(
         unescapeString( 
             ctx->IRIREF()->getText() 
         )
     );
-    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri(
-            baseString.substr(1, baseString.size() - 2)
-        );
-    if(res.has_error()) {
-        throw runtime_error("[ERROR]  Fail to parse base URL: " + baseString + " .");
-    }
     
-    base = res.value();
-    if(!base.has_scheme()) {
-        throw runtime_error("[ERROR]  Base IRI has no scheme.");
-    }
-
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitSparqlBase(TURTLEParser::SparqlBaseContext *ctx){
-    string baseString = constructAbsoluteIRI(
+    base = constructAbsoluteIRI(
         unescapeString( 
             ctx->IRIREF()->getText() 
         )
     );
-    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri(
-            baseString.substr(1, baseString.size() - 2)
-        );
-    if(res.has_error()) {
-        throw runtime_error("[ERROR]  Fail to parse base URL: " + baseString + " .");
-    }
-    
-    base = res.value();
-    if(!base.has_scheme()) {
-        throw runtime_error("[ERROR]  Base IRI has no scheme.");
-    }
-
     return antlrcpp::Any();
 }
 
@@ -382,17 +355,24 @@ antlrcpp::Any TurtleParser::visitTriples(TURTLEParser::TriplesContext *ctx) {
 }
 
 antlrcpp::Any TurtleParser::visitPredicateObjectList(TURTLEParser::PredicateObjectListContext *ctx){
+    cout << "ION";
     int n = ctx->verb().size();
+    cout << "SZ";
     for(int i = 0; i < n; ++i){
+        cout << "Verb";
         visitVerb(ctx->verb(i));
+        cout << "\nFINIS VERB";
         visitObjectList(ctx->objectList(i));
+        cout << "OBJ";
     }
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitObjectList(TURTLEParser::ObjectListContext *ctx) {
     for(auto *obj_ctx : ctx->object_()){
+        cout << "beforeN OBJ";
         visitObject_(obj_ctx);
+        cout << "outfo obj\n";
     }
     return antlrcpp::Any();
 }
@@ -428,24 +408,30 @@ antlrcpp::Any TurtleParser::visitObject_(TURTLEParser::Object_Context *ctx){
     Type::Type_ID objectType;
     if(ctx->literal()){
         visitLiteral(ctx->literal(), object, objectType, objectSubtype);
+        triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
+        return antlrcpp::Any();
     }
     else{
         objectType = Type::Type_URI;
         if(ctx->iri()){
             object = visitIri(ctx->iri()).as<string>();
+            triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
         } else if (ctx->BlankNode()){
             object = visitBlankNode(ctx->BlankNode()->getText()).as<string>();
+            triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
         } else if (ctx->collection()){
-            object = visitCollection(ctx->collection()).as<string>();
+            cout << "BEFORE collec";
+            triples.emplace_back(curSubject, curPredicate, bNodeID2Name(nextBlank), objectType, objectSubtype);
+            visitCollection(ctx->collection());
         } else if (ctx->blankNodePropertyList()){
-            object = visitBlankNodePropertyList(ctx->blankNodePropertyList()).as<string>();
+            triples.emplace_back(curSubject, curPredicate, bNodeID2Name(nextBlank), objectType, objectSubtype);
+            visitBlankNodePropertyList(ctx->blankNodePropertyList());
         } 
     }
-    triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
     return antlrcpp::Any();
 }
 
-antlrcpp::Any TurtleParser::visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType) {
+antlrcpp::Any TurtleParser::visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) {
     if(ctx->rdfLiteral()){
         visitRdfLiteral(ctx->rdfLiteral(), object, objectType, objectSubType);
     } else {
@@ -473,6 +459,7 @@ antlrcpp::Any TurtleParser::visitBlankNodePropertyList(TURTLEParser::BlankNodePr
     string bnodeName = newBlankNode();
     string oldSubject = curSubject, oldPredicate = curPredicate;
     curSubject = bnodeName;
+    cout << "Before po" << endl;
     visitPredicateObjectList(ctx->predicateObjectList());
     curSubject = oldSubject;
     curPredicate = oldPredicate;
@@ -480,7 +467,6 @@ antlrcpp::Any TurtleParser::visitBlankNodePropertyList(TURTLEParser::BlankNodePr
 }
 
 antlrcpp::Any TurtleParser::visitCollection(TURTLEParser::CollectionContext *ctx){
-    
     int n = ctx->object_().size();
     if(n == 0){
         return type_nil;
@@ -488,7 +474,7 @@ antlrcpp::Any TurtleParser::visitCollection(TURTLEParser::CollectionContext *ctx
 
     string oldSubject = curSubject, oldPredicate = curPredicate;
     string bnodeName = newBlankNode();
-    string curSubject = bnodeName;
+    curSubject = bnodeName;
     for(int i = 0; i < n ; ++i){
         /* rdf:first */
         curPredicate = predicate_first;
@@ -509,7 +495,7 @@ antlrcpp::Any TurtleParser::visitCollection(TURTLEParser::CollectionContext *ctx
     return bnodeName;
 }
 
-antlrcpp::Any TurtleParser::visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID objectType, std::string &objectSubType) {
+antlrcpp::Any TurtleParser::visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) {
     string text = ctx->children[0]->getText();
     object = visitString(text).as<string>();
     
