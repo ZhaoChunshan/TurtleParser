@@ -24,7 +24,39 @@ TurtleParser::~TurtleParser(){
 }
 
 bool TurtleParser::parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType) {
+    if(tree == nullptr){
+        constructParseTree();
+    }
 
+    if(triplesReader < triples.size()){
+        subject = triples[triplesReader].subject;
+        predicate = triples[triplesReader].predicate;
+        object = triples[triplesReader].object;
+        objectType = triples[triplesReader].objectType;
+        objectSubType = triples[triplesReader].objectSubType;
+        ++triplesReader;
+        return true;
+    }
+
+    triples.clear();
+    triplesReader = 0;
+
+    while(triples.size() == 0){
+        if(statementReader < tree->statement().size()){
+            visitStatement(tree->statement(statementReader++));
+        } else {
+            return false;
+        }
+    }
+
+    subject = triples[triplesReader].subject;
+    predicate = triples[triplesReader].predicate;
+    object = triples[triplesReader].object;
+    objectType = triples[triplesReader].objectType;
+    objectSubType = triples[triplesReader].objectSubType;
+    ++triplesReader;
+    
+    return true;
 }
 
 bool TurtleParser::hasParseTree() {
@@ -55,8 +87,86 @@ void TurtleParser::constructParseTree() {
 }
 
 // Convert a relative IRI into an absolute one
+// ShortComming: only handle URI, not IRI (i.e. cant work for some unicode char)
+// Implement Reference: RFC3986[https://www.ietf.org/rfc/rfc3986.txt], section 5.2
 std::string TurtleParser::constructAbsoluteIRI(const std::string &iri){
+    // rfc3986: A non-strict parser may ignore a scheme in the reference 
+    // if it is identical to the base URI's scheme.
+    const bool STRICT = false;  
 
+    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri_reference(
+            iri.substr(1, iri.length() - 2) 
+        );
+
+    if(res.has_error()){
+        throw runtime_error("[ERROR]  Fail to parse relative IRI " + iri + " .");
+    }
+    
+    boost::urls::url r = res.value();
+    boost::urls::url t; // target url
+
+    if(!STRICT && r.has_scheme() && base.scheme() == r.scheme()){
+        r.remove_scheme();
+    }
+    if(r.has_scheme()){
+        t.set_scheme(r.scheme());
+        if(r.has_authority()){
+            t.set_encoded_authority(r.encoded_authority());
+        }
+        t.set_path(r.path());
+        if(r.has_query()) {
+            t.set_query(r.query());
+        }
+    } else {
+        if(r.has_authority()){
+            t.set_encoded_authority(r.encoded_authority());
+            t.set_path(r.path());
+            if(r.has_query()) {
+                t.set_query(r.query());
+            }
+        }else{
+
+            if(r.path().size() == 0){
+                t.set_path(base.path());
+                if(r.has_query()){
+                    t.set_query(r.query());
+                }else if(base.has_query()){
+                    t.set_query(base.query());
+                }
+            }else{;
+                if(r.path().at(0) == '/'){
+                    t.set_path(r.path());
+                }else{
+                    /* merge paths*/
+                    t.set_path(base.path());
+                    if(t.segments( ).empty()){
+                        t.set_path(r.path());
+                    }else{
+                        boost::urls::segments_ref segs = t.segments();
+                        segs.pop_back();
+                        boost::urls::segments_encoded_ref rsegs= r.encoded_segments();
+                        for(auto s : rsegs){
+                            segs.push_back(s.decode());
+                        }
+                    }
+                    
+                }
+                if(r.has_query()) {
+                    t.set_query(r.query());
+                }
+            }
+            if(base.has_authority()) {
+                t.set_encoded_authority(u.encoded_authority());
+            }
+        }
+        t.set_scheme(base.scheme());
+    }
+    if(r.has_fragment()){
+        t.set_fragment(r.fragment());
+    }
+    t.normalize_path();
+    
+    return t.buffer();
 }
 
 /// Construct a new blank node
@@ -143,29 +253,21 @@ std::string TurtleParser::unescapeString(const std::string &str){
             */
             switch (str[i + 1]){
                 case 't':
-                    buffer.put('\t');
-                    break;
+                    buffer.put('\t'); break;
                 case 'b':
-                    buffer.put('\b');
-                    break;
+                    buffer.put('\b'); break;
                 case 'n' :
-                    buffer.put('\n');
-                    break;
+                    buffer.put('\n'); break;
                 case 'r' :
-                    buffer.put('\r');
-                    break;
+                    buffer.put('\r'); break;
                 case 'f' :
-                    buffer.put('\f');
-                    break;
+                    buffer.put('\f'); break;
                 case '"':
-                    buffer.put('"');
-                    break;
+                    buffer.put('"');  break;
                 case '\'':
-                    buffer.put('\'');
-                    break;
+                    buffer.put('\''); break;
                 case '\\':
-                    buffer.put('\\');
-                    break;
+                    buffer.put('\\'); reak;
                 default:
                     buffer.put(str[i + 1]);
             }
@@ -210,20 +312,44 @@ antlrcpp::Any TurtleParser::visitPrefixID(TURTLEParser::PrefixIDContext *ctx){
 }
 
 antlrcpp::Any TurtleParser::visitBase(TURTLEParser::BaseContext *ctx){
-    base = constructAbsoluteIRI(
+    string baseString = constructAbsoluteIRI(
         unescapeString( 
             ctx->IRIREF()->getText() 
         )
     );
+    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri(
+            baseString.substr(1, baseString.size() - 2)
+        );
+    if(res.has_error()) {
+        throw runtime_error("[ERROR]  Fail to parse base URL: " + baseString + " .");
+    }
+    
+    base = res.value();
+    if(!base.has_scheme()) {
+        throw runtime_error("[ERROR]  Base IRI has no scheme.");
+    }
+
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitSparqlBase(TURTLEParser::SparqlBaseContext *ctx){
-    base = constructAbsoluteIRI(
+    string baseString = constructAbsoluteIRI(
         unescapeString( 
             ctx->IRIREF()->getText() 
         )
     );
+    boost::urls::result<boost::urls::url> res = boost::urls::parse_uri(
+            baseString.substr(1, baseString.size() - 2)
+        );
+    if(res.has_error()) {
+        throw runtime_error("[ERROR]  Fail to parse base URL: " + baseString + " .");
+    }
+    
+    base = res.value();
+    if(!base.has_scheme()) {
+        throw runtime_error("[ERROR]  Base IRI has no scheme.");
+    }
+
     return antlrcpp::Any();
 }
 
@@ -455,7 +581,7 @@ antlrcpp::Any TurtleParser::visitString(const std::string &text){
     } else if (text.size() != 0 && text.at(0) == '"'){
         stringLiteral = visitStringQuote(text).as<string>();
     } else {
-        throw runtime_error("Bad string literal");
+        throw runtime_error("[ERROR]  Fail to parse string literal: " + text + " .");
     }
     return stringLiteral;
 }
@@ -481,7 +607,7 @@ antlrcpp::Any TurtleParser::visitPrefixedName(const std::string &text){
     string prefix = text.substr(0, colon_pos);
     string localName = unescapeString(text.substr(colon_pos + 1, len - colon_pos - 1));
     if(namespaces.find(prefix) == namespaces.end()){
-        throw runtime_error("Prefix " + prefix + " has not defined first.");
+        throw runtime_error("[ERROR]  Prefix " + prefix + " has not defined.");
     } 
     string prefixIri = namespaces[prefix];
     stringstream result;

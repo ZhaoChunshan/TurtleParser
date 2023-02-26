@@ -8,6 +8,7 @@
 #include "Turtle/TURTLEParser.h"
 #include "Turtle/TURTLEBaseVisitor.h"
 #include "antlr4-runtime.h"
+#include <boost/url/src.hpp>
 #include <string>
 #include <map>
 #include <vector>
@@ -44,7 +45,7 @@ class TurtleParser : public TURTLEBaseVisitor
     /// Five items to represent the parser state. (W3C recommendation)
 
     /// The uri base
-    std::string base;
+    boost::urls::url base;
     /// All known prefixes -> iri
     std::map<std::string,std::string> namespaces;
     /// All blank node labels -> id
