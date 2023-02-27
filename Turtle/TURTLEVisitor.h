@@ -53,9 +53,19 @@ public:
 
     virtual antlrcpp::Any visitCollection(TURTLEParser::CollectionContext *context) = 0;
 
+    virtual antlrcpp::Any visitNumericLiteral(TURTLEParser::NumericLiteralContext *context) = 0;
+
     virtual antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *context) = 0;
 
+    virtual antlrcpp::Any visitBooleanLiteral(TURTLEParser::BooleanLiteralContext *context) = 0;
+
+    virtual antlrcpp::Any visitString_(TURTLEParser::String_Context *context) = 0;
+
     virtual antlrcpp::Any visitIri(TURTLEParser::IriContext *context) = 0;
+
+    virtual antlrcpp::Any visitPrefixedName(TURTLEParser::PrefixedNameContext *context) = 0;
+
+    virtual antlrcpp::Any visitBlankNode(TURTLEParser::BlankNodeContext *context) = 0;
 
 
 };

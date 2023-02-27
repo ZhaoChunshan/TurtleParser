@@ -49,11 +49,11 @@ base
    ;
 
 sparqlBase
-   : ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' ) IRIREF
+   : BASE IRIREF
    ;
 
 sparqlPrefix
-   : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'X' | 'x' ) PNAME_NS IRIREF
+   : PREFIX PNAME_NS IRIREF
    ;
 
 triples
@@ -76,7 +76,7 @@ verb
 
 subject
    : iri
-   | BlankNode
+   | blankNode
    | collection
    ;
 
@@ -86,7 +86,7 @@ predicate
 
 object_
    : iri
-   | BlankNode
+   | blankNode
    | collection
    | blankNodePropertyList
    | literal
@@ -94,8 +94,8 @@ object_
 
 literal
    : rdfLiteral
-   | NumericLiteral
-   | BooleanLiteral
+   | numericLiteral
+   | booleanLiteral
    ;
 
 blankNodePropertyList
@@ -107,46 +107,53 @@ collection
    ;
 
 
-NumericLiteral
+numericLiteral
    : INTEGER | DECIMAL | DOUBLE
    ;
 
 rdfLiteral
-   : String (LANGTAG | '^^' iri)?
+   : string_ (LANGTAG | '^^' iri)?
    ;
 
 
-BooleanLiteral
+booleanLiteral
    : 'true' | 'false'
    ;
 
 
-String
+string_
    : STRING_LITERAL_QUOTE | STRING_LITERAL_SINGLE_QUOTE | STRING_LITERAL_LONG_SINGLE_QUOTE | STRING_LITERAL_LONG_QUOTE
    ;
 
 iri
    : IRIREF
-   | PrefixedName
+   | prefixedName
    ;
 
 
-PrefixedName
+prefixedName
    : PNAME_LN | PNAME_NS
    ;
 
 
-BlankNode
+blankNode
    : BLANK_NODE_LABEL | ANON
    ;
 
+
+// LEXER
 
 WS
    : ( ' ' | '\t' | '\r' | '\n' ) + -> skip
    ;
 
-// LEXER
+BASE
+   : ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )
+   ;
 
+PREFIX
+   : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'X' | 'x' )
+   ;
 
 IRIREF
    : '<' ( ~ ( [\u0000-\u0020] | '<' | '>' | '"' | '{' | '}' | '|' | '^' | '`' | '\\')  | UCHAR )* '>' ; 

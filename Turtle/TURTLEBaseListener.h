@@ -67,11 +67,26 @@ public:
   virtual void enterCollection(TURTLEParser::CollectionContext * /*ctx*/) override { }
   virtual void exitCollection(TURTLEParser::CollectionContext * /*ctx*/) override { }
 
+  virtual void enterNumericLiteral(TURTLEParser::NumericLiteralContext * /*ctx*/) override { }
+  virtual void exitNumericLiteral(TURTLEParser::NumericLiteralContext * /*ctx*/) override { }
+
   virtual void enterRdfLiteral(TURTLEParser::RdfLiteralContext * /*ctx*/) override { }
   virtual void exitRdfLiteral(TURTLEParser::RdfLiteralContext * /*ctx*/) override { }
 
+  virtual void enterBooleanLiteral(TURTLEParser::BooleanLiteralContext * /*ctx*/) override { }
+  virtual void exitBooleanLiteral(TURTLEParser::BooleanLiteralContext * /*ctx*/) override { }
+
+  virtual void enterString_(TURTLEParser::String_Context * /*ctx*/) override { }
+  virtual void exitString_(TURTLEParser::String_Context * /*ctx*/) override { }
+
   virtual void enterIri(TURTLEParser::IriContext * /*ctx*/) override { }
   virtual void exitIri(TURTLEParser::IriContext * /*ctx*/) override { }
+
+  virtual void enterPrefixedName(TURTLEParser::PrefixedNameContext * /*ctx*/) override { }
+  virtual void exitPrefixedName(TURTLEParser::PrefixedNameContext * /*ctx*/) override { }
+
+  virtual void enterBlankNode(TURTLEParser::BlankNodeContext * /*ctx*/) override { }
+  virtual void exitBlankNode(TURTLEParser::BlankNodeContext * /*ctx*/) override { }
 
 
   virtual void enterEveryRule(antlr4::ParserRuleContext * /*ctx*/) override { }

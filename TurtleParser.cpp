@@ -390,8 +390,8 @@ antlrcpp::Any TurtleParser::visitVerb(TURTLEParser::VerbContext *ctx){
 antlrcpp::Any TurtleParser::visitSubject(TURTLEParser::SubjectContext *ctx){
     if(ctx->iri()){
         curSubject = visitIri(ctx->iri()).as<string>();
-    } else if(ctx->BlankNode()){
-        curSubject = visitBlankNode(ctx->BlankNode()->getText()).as<string>();
+    } else if(ctx->blankNode()){
+        curSubject = visitBlankNode(ctx->blankNode()).as<string>();
     } else {
         curSubject = visitCollection(ctx->collection()).as<string>();
     }
@@ -416,8 +416,8 @@ antlrcpp::Any TurtleParser::visitObject_(TURTLEParser::Object_Context *ctx){
         if(ctx->iri()){
             object = visitIri(ctx->iri()).as<string>();
             triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
-        } else if (ctx->BlankNode()){
-            object = visitBlankNode(ctx->BlankNode()->getText()).as<string>();
+        } else if (ctx->blankNode()){
+            object = visitBlankNode(ctx->blankNode()).as<string>();
             triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
         } else if (ctx->collection()){
             cout << "BEFORE collec";
@@ -434,23 +434,18 @@ antlrcpp::Any TurtleParser::visitObject_(TURTLEParser::Object_Context *ctx){
 antlrcpp::Any TurtleParser::visitLiteral(TURTLEParser::LiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) {
     if(ctx->rdfLiteral()){
         visitRdfLiteral(ctx->rdfLiteral(), object, objectType, objectSubType);
-    } else {
-        string text = ctx->getText();
-        if(text == "true" || text == "false"){
-            object = text;
-            objectType = Type::Type_Boolean;
-        } else {
-            // NumericLiteral, i.e. INTEGER | DECIMAL | DOUBLE
-            object = text;
-            if(text.find('e') != string::npos || text.find('E') != string::npos){
-                // DOUBLE
-                objectType = Type::Type_Double;
-            } else if (text.find('.') != string::npos){
-                objectType = Type::Type_Decimal;
-            } else{
-                objectType = Type::Type::Type_Integer;
-            }
+    } else if(ctx->numericLiteral()){
+        object = ctx->getText();
+        if(ctx->numericLiteral()->INTEGER()){
+            objectType = Type::Type::Type_Integer;
+        }else if(ctx->numericLiteral()->DECIMAL()){
+            objectType = Type::Type_Decimal;
+        }else{
+            objectType = Type::Type_Double;
         }
+    } else {
+        object = ctx->getText();
+        objectType = Type::Type_Boolean;
     }
     return antlrcpp::Any();
 }
@@ -497,7 +492,7 @@ antlrcpp::Any TurtleParser::visitCollection(TURTLEParser::CollectionContext *ctx
 
 antlrcpp::Any TurtleParser::visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) {
     string text = ctx->children[0]->getText();
-    object = visitString(text).as<string>();
+    object = visitString_(ctx->string_()).as<string>();
     
     if(ctx->children.size() == 1){
         objectType = Type::Type_String;
@@ -526,6 +521,23 @@ antlrcpp::Any TurtleParser::visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx
     return antlrcpp::Any();
 }
 
+antlrcpp::Any TurtleParser::visitString_(TURTLEParser::String_Context *ctx){
+    string stringLiteral;
+    string text = ctx->getText();
+    if(ctx->STRING_LITERAL_LONG_SINGLE_QUOTE()){
+        stringLiteral = visitStringLongSingleQuote(text).as<string>();
+    } else if(ctx->STRING_LITERAL_LONG_QUOTE()){
+        stringLiteral = visitStringLongQuote(text).as<string>();
+    } else if (ctx->STRING_LITERAL_SINGLE_QUOTE()){
+        stringLiteral = visitStringSingleQuote(text).as<string>();
+    } else if (ctx->STRING_LITERAL_QUOTE()){
+        stringLiteral = visitStringQuote(text).as<string>();
+    } else {
+        throw runtime_error("[ERROR]  Fail to parse string literal: " + text + " .");
+    }
+    return stringLiteral;
+}
+
 antlrcpp::Any TurtleParser::visitIri(TURTLEParser::IriContext *ctx){
     // ascii '<' 3C cant be first char of PrefixedName
     string text = ctx->getText();
@@ -534,12 +546,28 @@ antlrcpp::Any TurtleParser::visitIri(TURTLEParser::IriContext *ctx){
             unescapeString(text)
         );
     } 
-    return visitPrefixedName(text);
+    return visitPrefixedName(ctx->prefixedName());
 }
 
-antlrcpp::Any TurtleParser::visitBlankNode(const std::string &text){
+
+antlrcpp::Any TurtleParser::visitPrefixedName(TURTLEParser::PrefixedNameContext *ctx){
+    string text = ctx->getText();
+    size_t colon_pos = text.find(':'), len = text.length();
+    string prefix = text.substr(0, colon_pos);
+    string localName = unescapeString(text.substr(colon_pos + 1, len - colon_pos - 1));
+    if(namespaces.find(prefix) == namespaces.end()){
+        throw runtime_error("[ERROR]  Prefix " + prefix + " has not defined.");
+    } 
+    string prefixIri = namespaces[prefix];
+    stringstream result;
+    result <<"<" << prefixIri.substr(1, prefixIri.length() - 2) << localName <<">";
+    return result.str();
+}
+
+antlrcpp::Any TurtleParser::visitBlankNode(TURTLEParser::BlankNodeContext *ctx){
     string bnodeName;
-    if(text.at(0) == '['){
+    string text = ctx->getText();
+    if(ctx->ANON()){
         // anno blank node
         bnodeName = newBlankNode();
     } else {
@@ -552,24 +580,6 @@ antlrcpp::Any TurtleParser::visitBlankNode(const std::string &text){
         }
     }
     return bnodeName;
-}
-
-antlrcpp::Any TurtleParser::visitString(const std::string &text){
-    string stringLiteral;
-    if(text.size() >= 3 && text.at(0) == '\'' && text.at(0) == text.at(1) && 
-        text.at(1) == text.at(2)){
-        stringLiteral = visitStringLongSingleQuote(text).as<string>();
-    } else if(text.size() >= 3 && text.at(0) == '"' && text.at(0) == text.at(1) && 
-        text.at(1) == text.at(2)){
-        stringLiteral = visitStringLongQuote(text).as<string>();
-    } else if (text.size() != 0 && text.at(0) == '\''){
-        stringLiteral = visitStringSingleQuote(text).as<string>();
-    } else if (text.size() != 0 && text.at(0) == '"'){
-        stringLiteral = visitStringQuote(text).as<string>();
-    } else {
-        throw runtime_error("[ERROR]  Fail to parse string literal: " + text + " .");
-    }
-    return stringLiteral;
 }
 
 antlrcpp::Any TurtleParser::visitStringQuote(const std::string &str){
@@ -586,19 +596,6 @@ antlrcpp::Any TurtleParser::visitStringLongQuote(const std::string &str){
 
 antlrcpp::Any TurtleParser::visitStringLongSingleQuote(const std::string &str){
     return unescapeString(str.substr(1, str.length() - 6));
-}
-
-antlrcpp::Any TurtleParser::visitPrefixedName(const std::string &text){
-    size_t colon_pos = text.find(':'), len = text.length();
-    string prefix = text.substr(0, colon_pos);
-    string localName = unescapeString(text.substr(colon_pos + 1, len - colon_pos - 1));
-    if(namespaces.find(prefix) == namespaces.end()){
-        throw runtime_error("[ERROR]  Prefix " + prefix + " has not defined.");
-    } 
-    string prefixIri = namespaces[prefix];
-    stringstream result;
-    result <<"<" << prefixIri.substr(1, prefixIri.length() - 2) << localName <<">";
-    return result.str();
 }
 
 /**

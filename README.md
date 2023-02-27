@@ -17,6 +17,6 @@ A parser for Turtle, the terse RDF triple language.
 + 原来文件中**STRING_LITERAL_QUOTE**的产生式体写错了要改，**STRING_LITERAL_SINGLE_QUOTE**、**STRING_LITERAL_LONG_QUOTE**、**STRING_LITERAL_LONG_SINGLE_QUOTE**也要修改。
 + **WS**要修改
 + **PN_CHARS_BASE**有误，漏了`'\u{10000}' .. '\u{EFFFF}' `。
-+ **PrefixedName**要出现在PNAME_LN，PNAME_NS的前面；有问题 改成 PNAME_NS PN_LOCAL?
++ 首字母大小写有问题，区分product rule 还是 Lexer rule。
 
 

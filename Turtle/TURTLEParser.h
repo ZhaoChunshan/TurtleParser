@@ -13,17 +13,14 @@ class  TURTLEParser : public antlr4::Parser {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
-    T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
-    T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
-    T__26 = 27, T__27 = 28, NumericLiteral = 29, BooleanLiteral = 30, String = 31, 
-    PrefixedName = 32, BlankNode = 33, WS = 34, IRIREF = 35, PNAME_NS = 36, 
-    PNAME_LN = 37, BLANK_NODE_LABEL = 38, LANGTAG = 39, INTEGER = 40, DECIMAL = 41, 
-    DOUBLE = 42, EXPONENT = 43, STRING_LITERAL_QUOTE = 44, STRING_LITERAL_SINGLE_QUOTE = 45, 
-    STRING_LITERAL_LONG_SINGLE_QUOTE = 46, STRING_LITERAL_LONG_QUOTE = 47, 
-    UCHAR = 48, ECHAR = 49, ANON_WS = 50, ANON = 51, PN_CHARS_BASE = 52, 
-    PN_CHARS_U = 53, PN_CHARS = 54, PN_PREFIX = 55, PN_LOCAL = 56, PLX = 57, 
-    PERCENT = 58, HEX = 59, PN_LOCAL_ESC = 60, LC = 61
+    T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, WS = 14, 
+    BASE = 15, PREFIX = 16, IRIREF = 17, PNAME_NS = 18, PNAME_LN = 19, BLANK_NODE_LABEL = 20, 
+    LANGTAG = 21, INTEGER = 22, DECIMAL = 23, DOUBLE = 24, EXPONENT = 25, 
+    STRING_LITERAL_QUOTE = 26, STRING_LITERAL_SINGLE_QUOTE = 27, STRING_LITERAL_LONG_SINGLE_QUOTE = 28, 
+    STRING_LITERAL_LONG_QUOTE = 29, UCHAR = 30, ECHAR = 31, ANON_WS = 32, 
+    ANON = 33, PN_CHARS_BASE = 34, PN_CHARS_U = 35, PN_CHARS = 36, PN_PREFIX = 37, 
+    PN_LOCAL = 38, PLX = 39, PERCENT = 40, HEX = 41, PN_LOCAL_ESC = 42, 
+    LC = 43
   };
 
   enum {
@@ -31,7 +28,8 @@ public:
     RuleBase = 4, RuleSparqlBase = 5, RuleSparqlPrefix = 6, RuleTriples = 7, 
     RulePredicateObjectList = 8, RuleObjectList = 9, RuleVerb = 10, RuleSubject = 11, 
     RulePredicate = 12, RuleObject_ = 13, RuleLiteral = 14, RuleBlankNodePropertyList = 15, 
-    RuleCollection = 16, RuleRdfLiteral = 17, RuleIri = 18
+    RuleCollection = 16, RuleNumericLiteral = 17, RuleRdfLiteral = 18, RuleBooleanLiteral = 19, 
+    RuleString_ = 20, RuleIri = 21, RulePrefixedName = 22, RuleBlankNode = 23
   };
 
   TURTLEParser(antlr4::TokenStream *input);
@@ -61,8 +59,13 @@ public:
   class LiteralContext;
   class BlankNodePropertyListContext;
   class CollectionContext;
+  class NumericLiteralContext;
   class RdfLiteralContext;
-  class IriContext; 
+  class BooleanLiteralContext;
+  class String_Context;
+  class IriContext;
+  class PrefixedNameContext;
+  class BlankNodeContext; 
 
   class  TurtleDocContext : public antlr4::ParserRuleContext {
   public:
@@ -150,6 +153,7 @@ public:
   public:
     SparqlBaseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *BASE();
     antlr4::tree::TerminalNode *IRIREF();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -165,6 +169,7 @@ public:
   public:
     SparqlPrefixContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *PREFIX();
     antlr4::tree::TerminalNode *PNAME_NS();
     antlr4::tree::TerminalNode *IRIREF();
 
@@ -248,7 +253,7 @@ public:
     SubjectContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     IriContext *iri();
-    antlr4::tree::TerminalNode *BlankNode();
+    BlankNodeContext *blankNode();
     CollectionContext *collection();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -280,7 +285,7 @@ public:
     Object_Context(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     IriContext *iri();
-    antlr4::tree::TerminalNode *BlankNode();
+    BlankNodeContext *blankNode();
     CollectionContext *collection();
     BlankNodePropertyListContext *blankNodePropertyList();
     LiteralContext *literal();
@@ -299,8 +304,8 @@ public:
     LiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     RdfLiteralContext *rdfLiteral();
-    antlr4::tree::TerminalNode *NumericLiteral();
-    antlr4::tree::TerminalNode *BooleanLiteral();
+    NumericLiteralContext *numericLiteral();
+    BooleanLiteralContext *booleanLiteral();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -342,11 +347,28 @@ public:
 
   CollectionContext* collection();
 
+  class  NumericLiteralContext : public antlr4::ParserRuleContext {
+  public:
+    NumericLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *INTEGER();
+    antlr4::tree::TerminalNode *DECIMAL();
+    antlr4::tree::TerminalNode *DOUBLE();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  NumericLiteralContext* numericLiteral();
+
   class  RdfLiteralContext : public antlr4::ParserRuleContext {
   public:
     RdfLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *String();
+    String_Context *string_();
     antlr4::tree::TerminalNode *LANGTAG();
     IriContext *iri();
 
@@ -359,12 +381,44 @@ public:
 
   RdfLiteralContext* rdfLiteral();
 
+  class  BooleanLiteralContext : public antlr4::ParserRuleContext {
+  public:
+    BooleanLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  BooleanLiteralContext* booleanLiteral();
+
+  class  String_Context : public antlr4::ParserRuleContext {
+  public:
+    String_Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STRING_LITERAL_QUOTE();
+    antlr4::tree::TerminalNode *STRING_LITERAL_SINGLE_QUOTE();
+    antlr4::tree::TerminalNode *STRING_LITERAL_LONG_SINGLE_QUOTE();
+    antlr4::tree::TerminalNode *STRING_LITERAL_LONG_QUOTE();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  String_Context* string_();
+
   class  IriContext : public antlr4::ParserRuleContext {
   public:
     IriContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IRIREF();
-    antlr4::tree::TerminalNode *PrefixedName();
+    PrefixedNameContext *prefixedName();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -374,6 +428,38 @@ public:
   };
 
   IriContext* iri();
+
+  class  PrefixedNameContext : public antlr4::ParserRuleContext {
+  public:
+    PrefixedNameContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *PNAME_LN();
+    antlr4::tree::TerminalNode *PNAME_NS();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  PrefixedNameContext* prefixedName();
+
+  class  BlankNodeContext : public antlr4::ParserRuleContext {
+  public:
+    BlankNodeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *BLANK_NODE_LABEL();
+    antlr4::tree::TerminalNode *ANON();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  BlankNodeContext* blankNode();
 
 
 private:

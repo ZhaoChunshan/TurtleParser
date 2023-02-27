@@ -83,11 +83,31 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitNumericLiteral(TURTLEParser::NumericLiteralContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx) override {
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitBooleanLiteral(TURTLEParser::BooleanLiteralContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitString_(TURTLEParser::String_Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitIri(TURTLEParser::IriContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitPrefixedName(TURTLEParser::PrefixedNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitBlankNode(TURTLEParser::BlankNodeContext *ctx) override {
     return visitChildren(ctx);
   }
 

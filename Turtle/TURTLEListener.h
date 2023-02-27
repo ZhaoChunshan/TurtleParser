@@ -65,11 +65,26 @@ public:
   virtual void enterCollection(TURTLEParser::CollectionContext *ctx) = 0;
   virtual void exitCollection(TURTLEParser::CollectionContext *ctx) = 0;
 
+  virtual void enterNumericLiteral(TURTLEParser::NumericLiteralContext *ctx) = 0;
+  virtual void exitNumericLiteral(TURTLEParser::NumericLiteralContext *ctx) = 0;
+
   virtual void enterRdfLiteral(TURTLEParser::RdfLiteralContext *ctx) = 0;
   virtual void exitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx) = 0;
 
+  virtual void enterBooleanLiteral(TURTLEParser::BooleanLiteralContext *ctx) = 0;
+  virtual void exitBooleanLiteral(TURTLEParser::BooleanLiteralContext *ctx) = 0;
+
+  virtual void enterString_(TURTLEParser::String_Context *ctx) = 0;
+  virtual void exitString_(TURTLEParser::String_Context *ctx) = 0;
+
   virtual void enterIri(TURTLEParser::IriContext *ctx) = 0;
   virtual void exitIri(TURTLEParser::IriContext *ctx) = 0;
+
+  virtual void enterPrefixedName(TURTLEParser::PrefixedNameContext *ctx) = 0;
+  virtual void exitPrefixedName(TURTLEParser::PrefixedNameContext *ctx) = 0;
+
+  virtual void enterBlankNode(TURTLEParser::BlankNodeContext *ctx) = 0;
+  virtual void exitBlankNode(TURTLEParser::BlankNodeContext *ctx) = 0;
 
 
 };

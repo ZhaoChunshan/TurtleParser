@@ -118,13 +118,15 @@ class TurtleParser : public TURTLEBaseVisitor
 
     antlrcpp::Any visitRdfLiteral(TURTLEParser::RdfLiteralContext *ctx, std::string &object, Type::Type_ID &objectType, std::string &objectSubType) ;
 
+    antlrcpp::Any visitString_(TURTLEParser::String_Context *ctx);
+
     antlrcpp::Any visitIri(TURTLEParser::IriContext *ctx) ;
 
+    antlrcpp::Any visitPrefixedName(TURTLEParser::PrefixedNameContext *ctx);
+
+    antlrcpp::Any visitBlankNode(TURTLEParser::BlankNodeContext *ctx) ;
+
     // addtional new function
-
-    antlrcpp::Any visitBlankNode(const std::string &text);
-
-    antlrcpp::Any visitString(const std::string &text);
 
     antlrcpp::Any visitStringQuote(const std::string &str);
 
@@ -134,7 +136,6 @@ class TurtleParser : public TURTLEBaseVisitor
 
     antlrcpp::Any visitStringLongSingleQuote(const std::string &str);
 
-    antlrcpp::Any visitPrefixedName(const std::string &text);
 };
 
 /**
