@@ -18,7 +18,7 @@ set(SOURCES
 	Turtle/TURTLEParser.cpp
 	Turtle/TURTLEVisitor.cpp
 	TurtleParser.cpp
-	main.cpp
+	test.cpp
 )
 
 # Add an executable with the above sources
