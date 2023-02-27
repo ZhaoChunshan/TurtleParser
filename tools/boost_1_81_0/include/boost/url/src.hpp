@@ -7,7 +7,6 @@
 //
 // Official repository: https://github.com/boostorg/url
 //
-#pragma once
 #ifndef BOOST_URL_SRC_HPP
 #define BOOST_URL_SRC_HPP
 
