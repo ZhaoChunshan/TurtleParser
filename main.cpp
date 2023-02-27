@@ -18,9 +18,9 @@ const string type_boolean = "<http://www.w3.org/2001/XMLSchema#boolean>";
 int main(){
     while(true){
 
-        string fileName;
+        string fileName = "comment_following_PNAME_NS.ttl";
         cout << "Input test file name in the testCase Folders: " << endl;
-        cin >>fileName;
+        //cin >>fileName;
         ifstream fin("../TurtleTests/" + fileName);
         TurtleParser tt(fin);
         string s, p, o;
