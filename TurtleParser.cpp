@@ -23,6 +23,10 @@ TurtleParser::~TurtleParser(){
 
 }
 
+void TurtleParser::setDefaultBaseIri(const std::string &_base){
+    base = _base;
+}
+
 bool TurtleParser::parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType) {
     if(!triples.size()){
         prepareTripes();
@@ -179,98 +183,151 @@ std::string TurtleParser::bNodeID2Name(unsigned id){
     return buffer.str();
 }
 
-// Convert two hex char to a unsigned char
-// For example : 'A' '0' => 160, '2' 'b' => 43
-unsigned char TurtleParser::twoHexCharToByte(char high, char low){
-    unsigned char uc;
-    if(high >= '0' && high <= '9'){
-        uc = high - '0';
-    } else if (high >= 'a' && high <='f'){
-        uc = high - 'a' + 10;
+unsigned int TurtleParser::hexCharToByte(char hex){
+    unsigned int i;
+    if(hex >= '0' && hex <= '9'){
+        i = hex - '0';
+    } else if (hex >= 'a' && hex <='f'){
+        i = hex - 'a' + 10;
     } else {
-        uc = high - 'A' + 10;
+        i = hex - 'A' + 10;
     }
-    uc <<= 4;
-    if(high >= '0' && high <= '9'){
-        uc += low - '0';
-    } else if (high >= 'a' && high <='f'){
-        uc += low - 'a' + 10;
-    } else {
-        uc += low - 'A' + 10;
-    }
-    return uc;
+    return i;
 }
 
-/// Get str unescaped, process numeric escapes, string escapes, reserved character escapes at the same 
-/// time. Make sure that every '\\' is used for escape, never just as a char.
-/// The grammar and the check of lexer && parser guarantee this property.
-std::string TurtleParser::unescapeString(const std::string &str){
+unsigned int TurtleParser::hexToUnicode(const char hex[], int n){
+    unsigned int i = 0;
+    for(int j = 0; j < n; ++j){
+        i = (i << 4) + hexCharToByte(hex[j]);
+    }
+    return i;
+}
+
+std::string TurtleParser::UnicodeToUTF8(unsigned int unicode){
+    string result;
+    if(unicode <= 0x000000007FU){
+        result.push_back((char)unicode);
+    } else if (unicode <= 0x000007FFU){
+        unsigned char high = 0b11000000, low = 0b10000000;
+        for(int i = 0; i < 6; ++i){
+            low |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        for(int i = 0; i < 5; ++i){
+            high |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        result.push_back((char)high);
+        result.push_back((char)low);
+    } else if(unicode <= 0x0000FFFFU){
+        unsigned char high = 0b11100000, mid = 0b10000000, low = 0b10000000;
+        for(int i = 0; i < 6; ++i){
+            low |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        for(int i = 0; i < 6; ++i){
+            mid |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        for(int i = 0; i < 4; ++i){
+            high |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        result.push_back((char)high);
+        result.push_back((char)mid);
+        result.push_back((char)low);
+
+    } else if(unicode <= 0x0010FFFFU) {
+        unsigned char a[4] = {0b11110000, 0b10000000, 0b10000000, 0b10000000};
+        for(int j = 3; j >= 1; --j){
+            for(int i = 0; i < 6; ++i){
+                a[j] |= (unsigned char)(unicode & 1U) << i;
+                unicode >>= 1;
+            }
+        }
+        for(int i = 0; i < 3; ++i){
+            a[0] |= (unsigned char)(unicode & 1U) << i;
+            unicode >>= 1;
+        }
+        for(int j = 0; j < 4; ++j){
+            result.push_back((char)a[j]);
+        }
+    } else {
+        throw runtime_error("[ERROR]  Unicode of out range (more than 0010FFFF) .");
+    }
+    return result;
+}
+
+/// Get str unescaped, can process numeric escapes, string escapes, reserved character escapes.
+std::string TurtleParser::unescapeString(const std::string &str, bool numericUnescape, bool stringUnescape , bool reservedCharUnescape){
     size_t n = str.size();
-    stringstream buffer;
+    string result;
     for(size_t i = 0; i < n; ++i){
         if(str[i] != '\\'){
-            buffer.put(str[i]);
+            result.push_back(str[i]);
             continue;
         } 
-        if(str[i + 1] == 'u'){
-            char a = (char) twoHexCharToByte(str[i + 2], str[i + 3]);
-            char b = (char) twoHexCharToByte(str[i + 4], str[i + 5]);
-            if(a != 0){
-                buffer.put(a);
-            } 
-            buffer.put(b);
-            i += 5;
+        if((str[i + 1] == 'u' || str[i + 1] == 'U') && numericUnescape){
+            int num_skip = str[i + 1] == 'u' ? 4 : 8;
+            unsigned int unicode = hexToUnicode(str.c_str() + i + 2, num_skip);
+            string utf8 = UnicodeToUTF8(unicode);
+            for(char c : utf8){
+                result.push_back(c);
+            }
+            i += 1 + num_skip;
+            continue;
         } 
-        else if(str[i + 1] == 'U'){
-            char a[4];
-            for(int j = 1; j <= 4; ++j){
-                a[j - 1] = (char) twoHexCharToByte(str[i + (j << 1)], str[i + (j << 1) + 1]);
-            }
 
-            int j;
-            for(j = 0; j < 4; ++j){
-                if(a[j]) break;
-            }
-            if(j >= 4) j = 3;
-
-            for(; j < 4; ++j){
-                buffer.put(a[j]);
-            }
-
-            i += 9;
-        } 
-        else {
-            /**
-                 string escapes 
-                '\t' '\b' '\n' '\r' '\f' '\"' '\'' '\\'	
-
-                reserved character escapes
-                ~.-!$&'()*+,;=/?#@%_
-            */
+        if(stringUnescape){
+            // string escapes '\t' '\b' '\n' '\r' '\f' '\"' '\'' '\\'
+            bool isStringEscape = true;
             switch (str[i + 1]){
                 case 't':
-                    buffer.put('\t'); break;
+                    result.push_back('\t'); break;
                 case 'b':
-                    buffer.put('\b'); break;
+                    result.push_back('\b'); break;
                 case 'n' :
-                    buffer.put('\n'); break;
+                    result.push_back('\n'); break;
                 case 'r' :
-                    buffer.put('\r'); break;
+                    result.push_back('\r'); break;
                 case 'f' :
-                    buffer.put('\f'); break;
+                    result.push_back('\f'); break;
                 case '"':
-                    buffer.put('"');  break;
+                    result.push_back('"');  break;
                 case '\'':
-                    buffer.put('\''); break;
+                    result.push_back('\''); break;
                 case '\\':
-                    buffer.put('\\'); break;
+                    result.push_back('\\'); break;
                 default:
-                    buffer.put(str[i + 1]);
+                    isStringEscape = false;
             }
-            i += 1;
+            if(isStringEscape) {
+                ++i;
+                continue;
+            }
         }
-    }
-    return buffer.str();
+
+        if(reservedCharUnescape) {
+            // reserved character escapes  ~.-!$&'()*+,;=/?#@%_ 
+            bool isReservdCharEscape = true;
+            switch (str[i + 1]){
+                case '~': case '.': case '-' : case '!' : case '$' :
+                case '&': case '\'': case '(': case ')': case '*':
+                case '+': case ',': case ';': case '=': case '/':
+                case '?': case '#':  case '@': case '%': case '_':
+                    result.push_back(str[i + 1]); break;
+                default:
+                    isReservdCharEscape = false;
+            }
+            if(isReservdCharEscape){
+                ++i;
+                continue;
+            }
+        }
+        result.push_back(str[i]);
+        
+    } // for(size_t i = 0; i < n; ++i)
+    return result;
 }
 
 antlrcpp::Any TurtleParser::visitStatement(TURTLEParser::StatementContext *ctx){
@@ -298,19 +355,21 @@ antlrcpp::Any TurtleParser::visitDirective(TURTLEParser::DirectiveContext *ctx){
 antlrcpp::Any TurtleParser::visitPrefixID(TURTLEParser::PrefixIDContext *ctx){
     string iri = constructAbsoluteIRI(
         unescapeString( 
-            ctx->IRIREF()->getText() 
+            ctx->IRIREF()->getText(),
+            true, false, false
         )
     );
     string prefix =  ctx->PNAME_NS()->getText();
     prefix.pop_back();  // pop the last ':'
-    namespaces.insert(make_pair(prefix, iri));
+    namespaces[prefix] = iri;
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitBase(TURTLEParser::BaseContext *ctx){
     base = constructAbsoluteIRI(
         unescapeString( 
-            ctx->IRIREF()->getText() 
+            ctx->IRIREF()->getText(),
+            true, false, false
         )
     );
     
@@ -320,21 +379,24 @@ antlrcpp::Any TurtleParser::visitBase(TURTLEParser::BaseContext *ctx){
 antlrcpp::Any TurtleParser::visitSparqlBase(TURTLEParser::SparqlBaseContext *ctx){
     base = constructAbsoluteIRI(
         unescapeString( 
-            ctx->IRIREF()->getText() 
+            ctx->IRIREF()->getText(),
+            true, false, false
         )
     );
+    
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitSparqlPrefix(TURTLEParser::SparqlPrefixContext *ctx){
     string iri = constructAbsoluteIRI(
         unescapeString( 
-            ctx->IRIREF()->getText() 
+            ctx->IRIREF()->getText(),
+            true, false, false
         )
     );
     string prefix =  ctx->PNAME_NS()->getText();
     prefix.pop_back();  // pop the last ':'
-    namespaces.insert(make_pair(prefix, iri));
+    namespaces[prefix] = iri;
     return antlrcpp::Any();
 }
 
@@ -355,24 +417,18 @@ antlrcpp::Any TurtleParser::visitTriples(TURTLEParser::TriplesContext *ctx) {
 }
 
 antlrcpp::Any TurtleParser::visitPredicateObjectList(TURTLEParser::PredicateObjectListContext *ctx){
-    cout << "ION";
     int n = ctx->verb().size();
-    cout << "SZ";
+
     for(int i = 0; i < n; ++i){
-        cout << "Verb";
         visitVerb(ctx->verb(i));
-        cout << "\nFINIS VERB";
         visitObjectList(ctx->objectList(i));
-        cout << "OBJ";
     }
     return antlrcpp::Any();
 }
 
 antlrcpp::Any TurtleParser::visitObjectList(TURTLEParser::ObjectListContext *ctx) {
     for(auto *obj_ctx : ctx->object_()){
-        cout << "beforeN OBJ";
         visitObject_(obj_ctx);
-        cout << "outfo obj\n";
     }
     return antlrcpp::Any();
 }
@@ -420,9 +476,12 @@ antlrcpp::Any TurtleParser::visitObject_(TURTLEParser::Object_Context *ctx){
             object = visitBlankNode(ctx->blankNode()).as<string>();
             triples.emplace_back(curSubject, curPredicate, object, objectType, objectSubtype);
         } else if (ctx->collection()){
-            cout << "BEFORE collec";
-            triples.emplace_back(curSubject, curPredicate, bNodeID2Name(nextBlank), objectType, objectSubtype);
-            visitCollection(ctx->collection());
+            if(!ctx->collection()->object_().size()){
+                triples.emplace_back(curSubject, curPredicate, type_nil, objectType, objectSubtype);
+            }else{
+                triples.emplace_back(curSubject, curPredicate, bNodeID2Name(nextBlank), objectType, objectSubtype);
+                visitCollection(ctx->collection());
+            }
         } else if (ctx->blankNodePropertyList()){
             triples.emplace_back(curSubject, curPredicate, bNodeID2Name(nextBlank), objectType, objectSubtype);
             visitBlankNodePropertyList(ctx->blankNodePropertyList());
@@ -454,7 +513,6 @@ antlrcpp::Any TurtleParser::visitBlankNodePropertyList(TURTLEParser::BlankNodePr
     string bnodeName = newBlankNode();
     string oldSubject = curSubject, oldPredicate = curPredicate;
     curSubject = bnodeName;
-    cout << "Before po" << endl;
     visitPredicateObjectList(ctx->predicateObjectList());
     curSubject = oldSubject;
     curPredicate = oldPredicate;
@@ -543,7 +601,7 @@ antlrcpp::Any TurtleParser::visitIri(TURTLEParser::IriContext *ctx){
     string text = ctx->getText();
     if(text[0] == '<'){
         return constructAbsoluteIRI(
-            unescapeString(text)
+            unescapeString(text, true, false, false)
         );
     } 
     return visitPrefixedName(ctx->prefixedName());
@@ -554,7 +612,7 @@ antlrcpp::Any TurtleParser::visitPrefixedName(TURTLEParser::PrefixedNameContext 
     string text = ctx->getText();
     size_t colon_pos = text.find(':'), len = text.length();
     string prefix = text.substr(0, colon_pos);
-    string localName = unescapeString(text.substr(colon_pos + 1, len - colon_pos - 1));
+    string localName = unescapeString(text.substr(colon_pos + 1, len - colon_pos - 1), false, false, true);
     if(namespaces.find(prefix) == namespaces.end()){
         throw runtime_error("[ERROR]  Prefix " + prefix + " has not defined.");
     } 
@@ -583,19 +641,19 @@ antlrcpp::Any TurtleParser::visitBlankNode(TURTLEParser::BlankNodeContext *ctx){
 }
 
 antlrcpp::Any TurtleParser::visitStringQuote(const std::string &str){
-    return unescapeString(str.substr(1, str.length() - 2));
+    return unescapeString(str.substr(1, str.length() - 2), true, true);
 }
 
 antlrcpp::Any TurtleParser::visitStringSingleQuote(const std::string &str){
-    return unescapeString(str.substr(1, str.length() - 2));
+    return unescapeString(str.substr(1, str.length() - 2), true, true);
 }
 
 antlrcpp::Any TurtleParser::visitStringLongQuote(const std::string &str){
-    return unescapeString(str.substr(1, str.length() - 6));
+    return unescapeString(str.substr(3, str.length() - 6), true, true);
 }
 
 antlrcpp::Any TurtleParser::visitStringLongSingleQuote(const std::string &str){
-    return unescapeString(str.substr(1, str.length() - 6));
+    return unescapeString(str.substr(3, str.length() - 6), true, true);
 }
 
 /**

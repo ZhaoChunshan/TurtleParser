@@ -2,10 +2,8 @@
 A parser for Turtle, the terse RDF triple language.
 ## Requirement
 + C++11
-+ boost Version 1.81.0 (Released On December 14th, 2022 17:44 GMT)
-```
- g++ -I /home/zhaochunshan/software/Boost test.cpp -o test
-```
++ boost Version 1.81.0 (Released On December 14th, 2022 17:44 GMT). See `TurtleParser/tools/boost_1_81_0`
+
 ## 编写正确的文法
 [语法文件](https://github.com/antlr/grammars-v4/blob/master/turtle/TURTLE.g4)g4的获取。这个文件根据[W3C规范](http://www.w3.org/TR/turtle/#sec-grammar-grammar)编写，但有几处不符合规范的错误，需要修改。
 + W3C规范指出，"BASE", "PREFIX" are case-insensitive. 这两个关键字大小写不敏感，原来的g4文件默认大写，需要修改。
@@ -17,6 +15,7 @@ A parser for Turtle, the terse RDF triple language.
 + 原来文件中**STRING_LITERAL_QUOTE**的产生式体写错了要改，**STRING_LITERAL_SINGLE_QUOTE**、**STRING_LITERAL_LONG_QUOTE**、**STRING_LITERAL_LONG_SINGLE_QUOTE**也要修改。
 + **WS**要修改
 + **PN_CHARS_BASE**有误，漏了`'\u{10000}' .. '\u{EFFFF}' `。
-+ 首字母大小写有问题，区分product rule 还是 Lexer rule。
++ 首字母大小写有问题，parser rule 产生式头的命名，首字母要小写。Lexer rule则大写。
 
 
+turtle-subm-16.ttl turtle-subm-01  localName_with_non_leading_extra

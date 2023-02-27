@@ -25,9 +25,13 @@ class TurtleParser : public TURTLEBaseVisitor
     TurtleParser(std::istream& in);
     /// Destructor
     ~TurtleParser();
-
+    ///
+    void setDefaultBaseIri(const std::string &_base);
     /// Read the next triple
     bool parse(std::string& subject,std::string& predicate,std::string& object,Type::Type_ID& objectType,std::string& objectSubType);
+
+    /// Get str unescaped, can process numeric escapes, string escapes, reserved character escapes.
+    std::string unescapeString(const std::string &str, bool numericUnescape = false, bool stringUnescape = false, bool reservedCharUnescape = false);
 
     private:
     /// A triple
@@ -74,15 +78,10 @@ class TurtleParser : public TURTLEBaseVisitor
     /// Convert a blank node id to its name in triple.
     std::string bNodeID2Name(unsigned id);
 
-    // Convert two hex char to a unsigned char
-    // For example : 'A' '0' => 160, '2' 'b' => 43
-    unsigned char twoHexCharToByte(char high, char low);
-    /// Get str unescaped, process numeric escapes, string escapes, reserved character escapes at the same 
-    /// time. Make sure that every '\\' is used for escape, never just as a char.
-    /// The grammar and the check of lexer && parser guarantee this property.
-    std::string unescapeString(const std::string &str);
-
-
+    unsigned int hexCharToByte(char hex);
+    unsigned int hexToUnicode(const char hex[], int n);
+    std::string UnicodeToUTF8(unsigned int unicode);
+    
     /// TODO: The antlr visit functions
     antlrcpp::Any visitStatement(TURTLEParser::StatementContext *ctx);
 
