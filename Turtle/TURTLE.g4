@@ -56,14 +56,6 @@ sparqlPrefix
    : PREFIX PNAME_NS IRIREF
    ;
 
-BASE
-   : ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )
-   ;
-
-PREFIX
-   : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'X' | 'x' )
-   ;
-
 triples
    : subject predicateObjectList
    | blankNodePropertyList predicateObjectList?
@@ -84,7 +76,7 @@ verb
 
 subject
    : iri
-   | BlankNode
+   | blankNode
    | collection
    ;
 
@@ -94,7 +86,7 @@ predicate
 
 object_
    : iri
-   | BlankNode
+   | blankNode
    | collection
    | blankNodePropertyList
    | literal
@@ -102,8 +94,8 @@ object_
 
 literal
    : rdfLiteral
-   | NumericLiteral
-   | BooleanLiteral
+   | numericLiteral
+   | booleanLiteral
    ;
 
 blankNodePropertyList
@@ -115,45 +107,53 @@ collection
    ;
 
 
-NumericLiteral
+numericLiteral
    : INTEGER | DECIMAL | DOUBLE
    ;
 
 rdfLiteral
-   : String (LANGTAG | '^^' iri)?
+   : string_ (LANGTAG | '^^' iri)?
    ;
 
 
-BooleanLiteral
+booleanLiteral
    : 'true' | 'false'
    ;
 
 
-String
+string_
    : STRING_LITERAL_QUOTE | STRING_LITERAL_SINGLE_QUOTE | STRING_LITERAL_LONG_SINGLE_QUOTE | STRING_LITERAL_LONG_QUOTE
    ;
 
 iri
    : IRIREF
-   | PrefixedName
+   | prefixedName
    ;
 
 
-BlankNode
+prefixedName
+   : PNAME_LN | PNAME_NS
+   ;
+
+
+blankNode
    : BLANK_NODE_LABEL | ANON
    ;
 
+
+// LEXER
 
 WS
    : ( ' ' | '\t' | '\r' | '\n' ) + -> skip
    ;
 
-// LEXER
-
-PN_PREFIX
-   : PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?
+BASE
+   : ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )
    ;
 
+PREFIX
+   : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'X' | 'x' )
+   ;
 
 IRIREF
    : '<' ( ~ ( [\u0000-\u0020] | '<' | '>' | '"' | '{' | '}' | '|' | '^' | '`' | '\\')  | UCHAR )* '>' ; 
@@ -163,16 +163,9 @@ PNAME_NS
    : PN_PREFIX? ':'
    ;
 
-
-PrefixedName
-   : PNAME_LN | PNAME_NS
-   ;
-
-
 PNAME_LN
    : PNAME_NS PN_LOCAL
    ;
-
 
 BLANK_NODE_LABEL
    : '_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
@@ -203,6 +196,14 @@ EXPONENT
    : [eE] [+-]? [0-9] +
    ;
 
+STRING_LITERAL_QUOTE
+   : '"' (~ ["\\\r\n] | ECHAR | UCHAR )* '"'
+   ;
+
+
+STRING_LITERAL_SINGLE_QUOTE
+   : '\'' (~ [\u0027\u005C\u000A\u000D] | ECHAR | UCHAR )* '\''
+   ;
 
 STRING_LITERAL_LONG_SINGLE_QUOTE
    : '\'\'\'' (('\'' | '\'\'')? ( ~ ['\\] | ECHAR | UCHAR ))* '\'\'\''
@@ -211,16 +212,6 @@ STRING_LITERAL_LONG_SINGLE_QUOTE
 
 STRING_LITERAL_LONG_QUOTE
    : '"""' (('"' | '""')? (~ ["\\] | ECHAR | UCHAR ))* '"""'
-   ;
-
-
-STRING_LITERAL_QUOTE
-   : '"' (~ ["\\\r\n] | ECHAR | UCHAR )* '"'
-   ;
-
-
-STRING_LITERAL_SINGLE_QUOTE
-   : '\'' (~ [\u0027\u005C\u000A\u000D] | ECHAR | UCHAR )* '\''
    ;
 
 
@@ -256,6 +247,11 @@ PN_CHARS_U
 
 PN_CHARS
    : PN_CHARS_U | '-' | [0-9] | '\u00B7' | [\u0300-\u036F] | [\u203F-\u2040]
+   ;
+
+
+PN_PREFIX
+   : PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?
    ;
 
 

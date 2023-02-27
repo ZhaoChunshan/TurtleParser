@@ -1,1 +1,4 @@
-TurtleTests
+build
+Turtle/.antlr
+.vscode
+debug
